@@ -1,0 +1,19 @@
+{
+    "name": "inline-html",
+    "title": "i18n:inline-html.title",
+    "package_version": 2,
+    "version": "1.0.0",
+    "author": "xiaoxiaotudou",
+    "description": "i18n:inline-html.description",
+    "contributions": {
+        "builder": "./dist/builder.js"
+    },
+    "dependencies": {
+        "mime-types": "^2.1.34",
+        "pako": "^2.0.4",
+        "readline-sync": "^1.4.10"
+    },
+    "devDependencies": {
+        "@types/node": "^17.0.21"
+    }
+}
