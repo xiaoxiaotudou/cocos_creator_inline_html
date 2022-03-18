@@ -1,23 +1,21 @@
-System.register('application', [], function (_export, _context) {
+System.register([], function (_export, _context) {
     "use strict";
-    function _defineProperty(obj, key, value) {
-        if (key in obj) {
-            Object.defineProperty(obj, key, {
-                value: value,
-                enumerable: true,
-                configurable: true,
-                writable: true
-            });
-        }
-        else {
-            obj[key] = value;
-        }
-        return obj;
+    function _defineProperty(obj, key, value) { if (key in obj) {
+        Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true });
     }
+    else {
+        obj[key] = value;
+    } return obj; }
     function createApplication(_ref) {
         var loadJsListFile = _ref.loadJsListFile, fetchWasm = _ref.fetchWasm;
         // NOTE: before here we shall not import any module!
         var promise = Promise.resolve();
+        promise = promise.then(function () {
+            return topLevelImport('wait-for-ammo-instantiation');
+        }).then(function (_ref2) {
+            var waitForAmmoInstantiation = _ref2["default"];
+            return waitForAmmoInstantiation(fetchWasm(''));
+        });
         return promise.then(function () {
             return _defineProperty({
                 start: start
@@ -65,11 +63,11 @@ System.register('application', [], function (_export, _context) {
                 let style = document.createElement("style");
                 style.type = "text/css";
                 style.textContent = `
-          @font-face {
-            font-family: "${fontFamily}";
-            src: url('${window.resMap[url]}') format("truetype");
-          }
-        `;
+            @font-face {
+              font-family: "${fontFamily}";
+              src: url('${window.resMap[url]}') format("truetype");
+            }
+          `;
                 document.head.appendChild(style);
                 let preloadDiv = document.createElement("div");
                 let divStyle = preloadDiv.style;
@@ -99,6 +97,18 @@ System.register('application', [], function (_export, _context) {
                 options.xhrMimeType = asset.mine;
                 ccLoadAudio(asset.url, options, onComplete);
             }
+            const ccLoadBin = cc.assetManager.downloader._downloaders[".bin"];
+            function loadBin(url, options, onComplete) {
+                const asset = getAsset(url);
+                options.xhrMimeType = asset.mine;
+                ccLoadBin(asset.url, options, onComplete);
+            }
+            const ccLoadText = cc.assetManager.downloader._downloaders[".txt"];
+            function loadText(url, options, onComplete) {
+                const asset = getAsset(url);
+                options.xhrMimeType = asset.mine;
+                ccLoadText(asset.url, options, onComplete);
+            }
             cc.assetManager.downloader.register({
                 "bundle": loadBundle,
                 ".json": loadJson,
@@ -112,11 +122,26 @@ System.register('application', [], function (_export, _context) {
                 ".ttf": loadFont,
                 ".ccon": loadAnimation,
                 ".cconb": loadAnimation,
-                ".mp3": loadAudio
+                ".mp3": loadAudio,
+                ".binary": loadBin,
+                ".bin": loadBin,
+                ".dbbin": loadBin,
+                ".skel": loadBin,
+                ".pvr": loadBin,
+                ".pkm": loadBin,
+                ".astc": loadBin,
+                ".txt": loadText,
+                ".xml": loadText,
+                ".vsh": loadText,
+                ".fsh": loadText,
+                ".atlas": loadText,
+                ".tmx": loadText,
+                ".tsx": loadText,
+                ".plist": loadText,
             });
         }
-        function start(_ref3) {
-            var findCanvas = _ref3.findCanvas;
+        function start(_ref4) {
+            var findCanvas = _ref4.findCanvas;
             var settings;
             var cc;
             return Promise.resolve().then(function () {
@@ -124,7 +149,6 @@ System.register('application', [], function (_export, _context) {
             }).then(function (engine) {
                 cc = engine;
                 overrideLoader();
-                window.TK && window.TK.preload();
                 return loadSettingsJson(cc);
             }).then(function () {
                 settings = window._CCSettings;
@@ -224,7 +248,6 @@ System.register('application', [], function (_export, _context) {
         var launchScene = settings.launchScene; // load scene
         cc.director.loadScene(launchScene, null, function () {
             cc.view.setDesignResolutionSize(750, 1334, 2);
-            window.TK && window.TK.start();
             console.log("Success to load scene: ".concat(launchScene));
         });
     }

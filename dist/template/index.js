@@ -1,4 +1,4 @@
-System.register('index', [], function (_export, _context) {
+System.register(["./application.js"], function (_export, _context) {
     "use strict";
     var createApplication, canvas, $p, bcr;
     function loadJsListFile(url) {
@@ -20,8 +20,7 @@ System.register('index', [], function (_export, _context) {
             });
             script.addEventListener('load', function () {
                 window.removeEventListener('error', windowErrorListener);
-                document.head.removeChild(script);
-                // Note that if an error occurs that isn't caught by this if statement,
+                document.head.removeChild(script); // Note that if an error occurs that isn't caught by this if statement,
                 // that getRegister will return null and a "did not instantiate" error will be thrown.
                 if (err) {
                     reject(err);
@@ -62,25 +61,21 @@ System.register('index', [], function (_export, _context) {
                 createApplication = _applicationJs.createApplication;
             }],
         execute: function () {
-            System.import('application').then(function (_applicationJs) {
-                createApplication = _applicationJs.createApplication;
-                canvas = document.getElementById('GameCanvas');
-                $p = canvas.parentElement;
-                bcr = $p.getBoundingClientRect();
-                canvas.width = bcr.width;
-                canvas.height = bcr.height;
-                createApplication({
-                    loadJsListFile: loadJsListFile,
-                    fetchWasm: fetchWasm
-                }).then(function (application) {
-                    return application.start({
-                        findCanvas: findCanvas
-                    });
-                })["catch"](function (err) {
-                    console.error(err);
+            canvas = document.getElementById('GameCanvas');
+            $p = canvas.parentElement;
+            bcr = $p.getBoundingClientRect();
+            canvas.width = bcr.width;
+            canvas.height = bcr.height;
+            createApplication({
+                loadJsListFile: loadJsListFile,
+                fetchWasm: fetchWasm
+            }).then(function (application) {
+                return application.start({
+                    findCanvas: findCanvas
                 });
+            })["catch"](function (err) {
+                console.error(err);
             });
         }
     };
 });
-System.import('index');

@@ -8,37 +8,92 @@ const fs_1 = __importDefault(require("fs"));
 const pako_1 = __importDefault(require("pako"));
 const mime_types_1 = __importDefault(require("mime-types"));
 let OUTPUT_PATH = '';
+let FILE_MAPPING = {};
 const compile = function (output) {
-    OUTPUT_PATH = output;
+    init(output);
     let index = readFile(`${__dirname}/template/index.html`);
     index = index.replace('{#css}', readFile(`${OUTPUT_PATH}/style.css`));
-    index = index.replace("{#polyfills}", complieFile(`${OUTPUT_PATH}/src/polyfills.bundle.js`));
-    index = index.replace("{#system}", complieFile(`${OUTPUT_PATH}/src/system.bundle.js`));
-    index = index.replace("{#engine}", complieFile(null, readFile(`${OUTPUT_PATH}/cocos-js/cc.js`).replace("System.register([]", `System.register("cc", []`)));
-    let mapping = {
-        'settings.json': readFile(`${OUTPUT_PATH}/src/settings.json`),
-        'chunks/bundle.js': readFile(`${OUTPUT_PATH}/src/chunks/bundle.js`)
-    }, scripts = '';
-    const dirs = fs_1.default.readdirSync(`${OUTPUT_PATH}/assets`);
-    dirs.forEach(dir => {
-        compileResource(`${OUTPUT_PATH}/assets/${dir}`, mapping);
-        scripts += readFile(`${OUTPUT_PATH}/assets/${dir}/index.js`);
-    });
+    index = index.replace('{#polyfills}', complieFile([
+        `${OUTPUT_PATH}/src/polyfills.bundle.js`,
+        `${OUTPUT_PATH}/src/system.bundle.js`,
+    ]));
+    let scripts = [], mapping = {};
+    compileEngine(scripts);
+    complieAssets(scripts, mapping);
+    compileProject(scripts, mapping);
     index = index.replace("{#resource}", `window.resMap=${JSON.stringify(mapping)}`);
-    index = index.replace("{#main}", scripts);
-    index = index.replace("{#application}", complieFile(`${__dirname}/template/application.js`));
-    index = index.replace("{#index}", complieFile(`${__dirname}/template/index.js`));
+    index = index.replace("{#main}", scripts.join(''));
     fs_1.default.writeFileSync(`${OUTPUT_PATH}/index.html`, index);
     console.log('<--------- success --------->');
 };
 exports.compile = compile;
+function init(output) {
+    OUTPUT_PATH = output;
+    FILE_MAPPING["\.\/application.js"] = "application";
+    FILE_MAPPING["application.js"] = "application";
+    FILE_MAPPING["\.\/index.js"] = "index";
+    FILE_MAPPING["index.js"] = "index";
+    const dirs = fs_1.default.readdirSync(`${OUTPUT_PATH}/cocos-js`);
+    dirs.forEach(dir => {
+        const stat = fs_1.default.statSync(`${OUTPUT_PATH}/cocos-js/${dir}`);
+        if (stat.isFile()) {
+            FILE_MAPPING[`\.\/${dir}`] = dir.replace(".js", "");
+            FILE_MAPPING[`${dir}`] = dir.replace(".js", "");
+        }
+    });
+}
+function compileEngine(scripts) {
+    const dirs = fs_1.default.readdirSync(`${OUTPUT_PATH}/cocos-js`);
+    dirs.forEach(dir => {
+        const stat = fs_1.default.statSync(`${OUTPUT_PATH}/cocos-js/${dir}`);
+        if (stat.isFile()) {
+            if (!dir.startsWith('bullet.wasm')) {
+                let script = readFile(`${OUTPUT_PATH}/cocos-js/${dir}`).replace(`System.register(`, `System.register('${dir}',`);
+                scripts.push(complieFile(null, resolveScript(script)));
+            }
+            else {
+                const asset = fs_1.default.readdirSync(`${OUTPUT_PATH}/cocos-js/assets`)[0];
+                const buffer = fs_1.default.readFileSync(`${OUTPUT_PATH}/cocos-js/assets/${asset}`);
+                const script = `System.register('${dir}', [],(function(e,t){"use strict";return{execute:function(){var binary_string=window.atob("${buffer.toString("base64")}");var len=binary_string.length;var bytes=new Uint8Array(len);for(var i=0;i<len;i++){bytes[i]=binary_string.charCodeAt(i)}var blob=new Blob([bytes],{type:"${mime_types_1.default.lookup(`${OUTPUT_PATH}/cocos-js/assets/${asset}`)}"});e("default",URL.createObjectURL(blob))}}}));`;
+                scripts.push(complieFile(null, resolveScript(script)));
+            }
+        }
+    });
+}
+function complieAssets(scripts, mapping) {
+    const dirs = fs_1.default.readdirSync(`${OUTPUT_PATH}/assets`);
+    dirs.forEach(dir => {
+        scripts.push(readFile(`${OUTPUT_PATH}/assets/${dir}/index.js`));
+        compileResource(`${OUTPUT_PATH}/assets/${dir}`, mapping);
+    });
+}
+function compileProject(scripts, mapping) {
+    let index = readFile(`${__dirname}/template/index.js`).replace(`System.register(`, `System.register('index.js',`);
+    let application = readFile(`${__dirname}/template/application.js`).replace(`System.register(`, `System.register('application.js',`);
+    scripts.push(resolveScript(index));
+    scripts.push(resolveScript(application));
+    mapping["settings.json"] = readFile(`${OUTPUT_PATH}/src/settings.json`);
+    mapping["chunks/bundle.js"] = readFile(`${OUTPUT_PATH}/src/chunks/bundle.js`);
+}
+function resolveScript(content) {
+    Object.keys(FILE_MAPPING).forEach(key => {
+        const pattern = new RegExp(`/${key}/g`);
+        content = content.replace(key, FILE_MAPPING[key]);
+    });
+    return content;
+}
 function readFile(path) {
     return fs_1.default.readFileSync(path, { encoding: "utf-8" });
 }
 function complieFile(path, content = null) {
-    let file;
-    if (path) {
+    let file = '';
+    if (path && 'string' === typeof path) {
         file = readFile(path);
+    }
+    else if (Array.isArray(path)) {
+        path.forEach(v => {
+            file += readFile(v);
+        });
     }
     else if (content) {
         file = content;
@@ -55,15 +110,7 @@ function complieFile(path, content = null) {
         for (let i = 0; i < compress.length; i++) {
             bytes[i] = compress.charCodeAt(i);
         }
-        var file = pako.inflate(bytes, { to: 'string' });
-        var script = document.createElement("script");
-        script.type = "text/javascript";
-        try {
-            script.appendChild(document.createTextNode(file));
-        } catch (error) {
-            script.text = file;
-        }
-        document.body.appendChild(script);`;
+        eval(pako.inflate(bytes, { to: 'string' }));`;
 }
 function compileResource(path, mapping) {
     const files = fs_1.default.readdirSync(path);
