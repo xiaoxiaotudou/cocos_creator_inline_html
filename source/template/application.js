@@ -124,6 +124,7 @@ System.register([], function (_export, _context) {
         cc.assetManager.downloader.register({
           "bundle": loadBundle,
           ".json": loadJson,
+          ".ExportJson": loadJson,
           ".png": loadImage,
           ".jpg": loadImage,
           ".bmp": loadImage,
