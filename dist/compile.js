@@ -68,12 +68,17 @@ function complieAssets(scripts, mapping) {
     });
 }
 function compileProject(scripts, mapping) {
-    let index = readFile(`${__dirname}/template/index.js`).replace(`System.register(`, `System.register('index.js',`);
-    let application = readFile(`${__dirname}/template/application.js`).replace(`System.register(`, `System.register('application.js',`);
+    let index = readFile(`${OUTPUT_PATH}/index.js`).replace(`System.register(`, `System.register('index.js',`);
+    let application = readFile(`${OUTPUT_PATH}/application.js`).replace(`System.register(`, `System.register('application.js',`);
     scripts.push(resolveScript(index));
-    scripts.push(resolveScript(application));
+    scripts.push(resolveScript(resolveApplication(application)));
     mapping["settings.json"] = readFile(`${OUTPUT_PATH}/src/settings.json`);
     mapping["chunks/bundle.js"] = readFile(`${OUTPUT_PATH}/src/chunks/bundle.js`);
+}
+function resolveApplication(application) {
+    return application
+        .replace(`return loadSettingsJson(cc);`, readFile(`${__dirname}/template/application.js`))
+        .replace(`return topLevelImport(pack);`, `var name = pack.replace("./src/", "");var blob = new Blob([window.resMap[name]], { type: "text/plain" });return topLevelImport(URL.createObjectURL(blob));`);
 }
 function resolveScript(content) {
     Object.keys(FILE_MAPPING).forEach(key => {
