@@ -85,6 +85,13 @@ function overrideLoader() {
     ccLoadAudio(asset.url, options, onComplete);
   }
 
+  const ccLoadVideo = cc.assetManager.downloader._downloaders[".mp4"];
+  function loadVideo(url, options, onComplete) {
+    const asset = getAsset(url);
+    options.xhrMimeType = asset.mine;
+    ccLoadVideo(asset.url, options, onComplete);
+  }
+
   const ccLoadBin = cc.assetManager.downloader._downloaders[".bin"];
   function loadBin(url, options, onComplete) {
     const asset = getAsset(url);
@@ -102,6 +109,7 @@ function overrideLoader() {
   cc.assetManager.downloader.register({
     "bundle": loadBundle,
     ".json": loadJson,
+    ".ExportJson": loadJson,
     ".png": loadImage,
     ".jpg": loadImage,
     ".bmp": loadImage,
@@ -109,11 +117,25 @@ function overrideLoader() {
     ".gif": loadImage,
     ".ico": loadImage,
     ".plist": loadPlist,
-    ".ttf":loadFont,
+    ".font": loadFont,
+    ".eot": loadFont,
+    ".ttf": loadFont,
+    ".woff": loadFont,
+    ".svg": loadFont,
+    ".ttc": loadFont,
     ".ccon": loadAnimation,
     ".cconb": loadAnimation,
     ".mp3": loadAudio,
+    ".ogg": loadAudio,
     ".wav": loadAudio,
+    ".m4a": loadAudio,
+    ".mp4": loadVideo,
+    ".avi": loadVideo,
+    ".mov": loadVideo,
+    ".mpg": loadVideo,
+    ".mpeg": loadVideo,
+    ".rm": loadVideo,
+    ".rmvb": loadVideo,
     ".binary": loadBin,
     ".bin": loadBin,
     ".dbbin": loadBin,
